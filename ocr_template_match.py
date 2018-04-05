@@ -35,7 +35,6 @@ FIRST_NUMBER = {
 # *black* background
 # and invert it, such that the digits appear as *white* on a *black*
 ref = cv2.imread(args["reference"])
-#ref = cv2.bitwise_not(ref)
 ref = cv2.cvtColor(ref, cv2.COLOR_BGR2GRAY)
 ref = cv2.threshold(ref, 10, 255, cv2.THRESH_BINARY_INV)[1]
 
@@ -66,8 +65,8 @@ sqKernel = cv2.getStructuringElement(cv2.MORPH_RECT, (5, 5))
 
 # load the input image, resize it, and convert it to grayscale
 image = cv2.imread(args["image"])
+image = imutils.resize(image, width=900)
 image = cv2.bitwise_not(image)
-image = imutils.resize(image, width=300)
 gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
 
 # apply a tophat (whitehat) morphological operator to find light
@@ -83,9 +82,6 @@ gradX = np.absolute(gradX)
 gradX = (255 * ((gradX - minVal) / (maxVal - minVal)))
 gradX = gradX.astype("uint8")
 
-#cv2.imshow("Image", image)
-#cv2.waitKey(0)
-
 # apply a closing operation using the rectangular kernel to help
 # cloes gaps in between credit card number digits, then apply
 # Otsu's thresholding method to binarize the image
@@ -96,8 +92,6 @@ thresh = cv2.threshold(gradX, 0, 255,
 # apply a second closing operation to the binary image, again
 # to help close gaps between credit card number regions
 thresh = cv2.morphologyEx(thresh, cv2.MORPH_CLOSE, sqKernel)
-#cv2.imshow("Image", image)
-#cv2.waitKey(0)
 
 # find contours in the thresholded image, then initialize the
 # list of digit locations
@@ -105,8 +99,6 @@ cnts = cv2.findContours(thresh.copy(), cv2.RETR_EXTERNAL,
 	cv2.CHAIN_APPROX_SIMPLE)
 cnts = cnts[0] if imutils.is_cv2() else cnts[1]
 locs = []
-cv2.imshow("Image", image)
-cv2.waitKey(0)
 
 # loop over the contours
 for (i, c) in enumerate(cnts):
@@ -118,10 +110,10 @@ for (i, c) in enumerate(cnts):
 	# since credit cards used a fixed size fonts with 4 groups
 	# of 4 digits, we can prune potential contours based on the
 	# aspect ratio
-	if ar > 2.5 and ar < 4.0:
+	if ar > 1.5 and ar < 2.0:
 		# contours can further be pruned on minimum/maximum width
 		# and height
-	#	if (w > 40 and w < 55) and (h > 10 and h < 20):
+		if (w > 5 and w < 70) and (h > 5 and h < 40):
 			# append the bounding box region of the digits group
 			# to our locations list
 			locs.append((x, y, w, h))
@@ -174,6 +166,8 @@ for (i, (gX, gY, gW, gH)) in enumerate(locs):
 
 		# the classification for the digit ROI will be the reference
 		# digit name with the *largest* template matching score
+		print (np.argmax(scores))
+		print(scores)
 		groupOutput.append(str(np.argmax(scores)))
 
 	# draw the digit classifications around the group
@@ -188,7 +182,7 @@ for (i, (gX, gY, gW, gH)) in enumerate(locs):
 	output.extend(groupOutput)
 
 # display the output credit card information to the screen
-print("Credit Card Type: {}".format(FIRST_NUMBER[output[0]]))
-print("Credit Card #: {}".format("".join(output)))
+#print("Credit Card Type: {}".format(FIRST_NUMBER[output[0]]))
+print("Rack Number: {}".format("".join(output)))
 cv2.imshow("Image", image)
 cv2.waitKey(0)
